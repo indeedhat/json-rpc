@@ -83,11 +83,15 @@ func (h *Handler) handleRequest(body []byte) *Response {
 	)
 
 	if err != nil {
-		if errors.Is(err, errInvalidParamsType) {
-			return buildResponse(errBadParams, req.ID)
-		}
-
 		return buildResponse(errBadRequest, req.ID)
+	}
+
+	if req.JsonRpc != "2.0" {
+		return buildResponse(errBadRequest, req.ID)
+	}
+
+	if !req.Params.Valid() {
+		return buildResponse(errBadParams, req.ID)
 	}
 
 	methodHandler, ok := h.handlers[req.Method]

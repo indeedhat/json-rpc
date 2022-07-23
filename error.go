@@ -18,11 +18,6 @@ const (
 
 var ErrMethodExists = errors.New("method already registerd with rpc handler")
 
-// errInvalidParamsType this error is returned from the Params struct
-// during json unmarshaling of the request if the params is not
-// of types nil, []interface{} or map[string]interface{}
-var errInvalidParamsType error = errors.New("invalid prams type")
-
 // internal errors used for building responses
 var (
 	errParseFailed = Error{

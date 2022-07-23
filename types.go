@@ -24,22 +24,27 @@ var _ json.Unmarshaler = (*Params)(nil)
 
 // UnmarshalJSON provides custom logic for encoding/json to unmarshal data into the Params type
 func (p *Params) UnmarshalJSON(data []byte) error {
-	if len(data) == 0 {
-		return nil
+	*p = data
+	return nil
+}
+
+// Valid checks the validity of the params input (if they are an array or object)
+func (p *Params) Valid() bool {
+	if len(*p) == 0 {
+		return true
 	}
 
 	var tmpData interface{}
-	if err := json.Unmarshal(data, &tmpData); err != nil {
-		return errInvalidParamsType
+	if err := json.Unmarshal(*p, &tmpData); err != nil {
+		return false
 	}
 
 	switch tmpData.(type) {
 	case map[string]interface{}, []interface{}:
-		*p = data
-		return nil
+		return true
 	}
 
-	return errInvalidParamsType
+	return false
 }
 
 // Unmarshal unmarshals the params byte array into the given target structure
@@ -63,7 +68,7 @@ func (p Params) Unmarshal(target any) error {
 type Request struct {
 	JsonRpc string `json:"jsonrpc"`
 	Method  string `json:"method"`
-	Params  *any   `json:"params"`
+	Params  Params `json:"params"`
 	ID      *any   `json:"id"`
 
 	// parsed is used as part of batch requesting to determine if

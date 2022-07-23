@@ -7,7 +7,7 @@ import (
 	"github.com/indeedhat/json-rpc"
 )
 
-var paramsUnmarshalJSONCases = []struct {
+var paramsValidCases = []struct {
 	name            string
 	inputData       string
 	expectedOutcome bool
@@ -24,16 +24,20 @@ var paramsUnmarshalJSONCases = []struct {
 	{"mixed object", `{"three": "three", "one": 1, "four": 4.0}`, true},
 }
 
-func TestParamsUnmarshalJSON(t *testing.T) {
-	for _, testCase := range paramsUnmarshalJSONCases {
+func TestParamsValid(t *testing.T) {
+	for _, testCase := range paramsValidCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			var out jsonrpc.Params
-			err := json.Unmarshal([]byte(testCase.inputData), &out)
+			var params jsonrpc.Params
+			err := json.Unmarshal([]byte(testCase.inputData), &params)
+			if err != nil {
+				t.Fatal("failed to unmarshal data into params")
+			}
 
-			if err != nil && testCase.expectedOutcome {
-				t.Fatal("failed to unmarshal valid data")
-			} else if err == nil && !testCase.expectedOutcome {
-				t.Fatal("did not fail to unmarshal invalid data")
+			valid := params.Valid()
+			if !valid && testCase.expectedOutcome {
+				t.Fatal("false negative")
+			} else if valid && !testCase.expectedOutcome {
+				t.Fatal("false negative")
 			}
 		})
 	}
