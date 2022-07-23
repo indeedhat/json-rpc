@@ -2,7 +2,6 @@ package jsonrpc
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 )
@@ -59,22 +58,25 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// validity already checked
 	_ = json.Unmarshal(bodyData, &tmpRequests)
+
 	for _, tmpReq := range tmpRequests {
 		bytes, _ := json.Marshal(tmpReq)
 		response := h.handleRequest(bytes)
 
 		if response != nil {
-			responses = append(responses)
+			responses = append(responses, *response)
 		}
 	}
 
-	rw.Write(marshal(responses))
+	if len(responses) > 0 {
+		rw.Write(marshal(responses))
+	}
 }
 
 // handleRequest handles each individual rpc request within the batch
 func (h *Handler) handleRequest(body []byte) *Response {
 	if !json.Valid(body) {
-		return buildResponse(errParseFailed, nil)
+		return buildResponse(errParseFailed, nil, true)
 	}
 
 	var (
@@ -83,11 +85,11 @@ func (h *Handler) handleRequest(body []byte) *Response {
 	)
 
 	if err != nil {
-		return buildResponse(errBadRequest, req.ID)
+		return buildResponse(errParseFailed, req.ID, true)
 	}
 
 	if req.JsonRpc != "2.0" {
-		return buildResponse(errBadRequest, req.ID)
+		return buildResponse(errBadRequest, req.ID, true)
 	}
 
 	if !req.Params.Valid() {
@@ -119,10 +121,10 @@ func isBatchRequest(body []byte) bool {
 }
 
 // buildResponse builds a response object out of unknown input
-func buildResponse(response any, id *any) *Response {
+func buildResponse(response any, id *any, force ...bool) *Response {
 	// if no id is present then this is a notification request
 	// and the server MUST not respond
-	if id == nil {
+	if id == nil && len(force) == 0 {
 		return nil
 	}
 
