@@ -1,6 +1,7 @@
 package jsonrpc
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -31,8 +32,8 @@ func (h *Handler) RegisterRpcMethod(method string, handler HandlerFunc) error {
 
 var _ http.Handler = (*Handler)(nil)
 
-// ServeHTTP conforms to the http.Handler interfoce
-func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+// ServeHTTPWithContext Cals the handler with an added context
+func (h *Handler) ServeHTTPWithContext(ctx *context.Context, rw http.ResponseWriter, req *http.Request) {
 	bodyData, err := ioutil.ReadAll(req.Body)
 
 	if err != nil {
@@ -41,7 +42,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if !isBatchRequest(bodyData) {
-		response := h.handleRequest(bodyData)
+		response := h.handleRequest(ctx, bodyData)
 		if response != nil {
 			rw.Write(marshal(response))
 		}
@@ -61,7 +62,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	for _, tmpReq := range tmpRequests {
 		bytes, _ := json.Marshal(tmpReq)
-		response := h.handleRequest(bytes)
+		response := h.handleRequest(ctx, bytes)
 
 		if response != nil {
 			responses = append(responses, *response)
@@ -73,8 +74,14 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// ServeHTTP conforms to the http.Handler interfoce
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	ctx := context.Background()
+	h.ServeHTTPWithContext(&ctx, rw, req)
+}
+
 // handleRequest handles each individual rpc request within the batch
-func (h *Handler) handleRequest(body []byte) *Response {
+func (h *Handler) handleRequest(ctx *context.Context, body []byte) *Response {
 	if !json.Valid(body) {
 		return buildResponse(errParseFailed, nil, true)
 	}
@@ -96,6 +103,7 @@ func (h *Handler) handleRequest(body []byte) *Response {
 		return buildResponse(errBadParams, req.ID)
 	}
 
+	req.Ctx = ctx
 	methodHandler, ok := h.handlers[req.Method]
 	if !ok {
 		return buildResponse(errMethodNotFound, req.ID)
