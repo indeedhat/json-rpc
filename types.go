@@ -71,7 +71,7 @@ type Request struct {
 	Method  string `json:"method"`
 	Params  Params `json:"params"`
 	ID      *any   `json:"id"`
-	Ctx     *context.Context
+	Ctx     context.Context
 
 	// parsed is used as part of batch requesting to determine if
 	parsed bool

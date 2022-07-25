@@ -33,7 +33,7 @@ func (h *Handler) RegisterRpcMethod(method string, handler HandlerFunc) error {
 var _ http.Handler = (*Handler)(nil)
 
 // ServeHTTPWithContext Cals the handler with an added context
-func (h *Handler) ServeHTTPWithContext(ctx *context.Context, rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) ServeHTTPWithContext(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
 	bodyData, err := ioutil.ReadAll(req.Body)
 
 	if err != nil {
@@ -77,11 +77,11 @@ func (h *Handler) ServeHTTPWithContext(ctx *context.Context, rw http.ResponseWri
 // ServeHTTP conforms to the http.Handler interfoce
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
-	h.ServeHTTPWithContext(&ctx, rw, req)
+	h.ServeHTTPWithContext(ctx, rw, req)
 }
 
 // handleRequest handles each individual rpc request within the batch
-func (h *Handler) handleRequest(ctx *context.Context, body []byte) *Response {
+func (h *Handler) handleRequest(ctx context.Context, body []byte) *Response {
 	if !json.Valid(body) {
 		return buildResponse(errParseFailed, nil, true)
 	}
